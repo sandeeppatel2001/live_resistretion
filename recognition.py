@@ -4,8 +4,15 @@ import cv2
 import numpy as np
 import math
 from datetime import datetime
-
-
+import requests
+import time
+import json
+sandeeparray=set()
+class SetEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+        return json.JSONEncoder.default(self, obj)
 def face_confidence(face_distance, face_match_threshold=0.6):
     range = 1.0 - face_match_threshold
     linear_val = (1.0 - face_distance) / (range * 2.0)
@@ -26,7 +33,8 @@ class FaceRecognition:
     known_face_encodings = []
     known_face_names = []
     process_current_frame = True
-
+    
+    
     def __init__(self):
         self.encode_faces()
 
@@ -51,10 +59,12 @@ class FaceRecognition:
                 face_image = face_recognition.load_image_file(
                     f"faces/{person_folder}/{image}"
                 )
+                
                 # face_encoding = face_recognition.face_encodings(face_image)[0]
                 try:
                     face_encoding = face_recognition.face_encodings(face_image)[0]
                     self.known_face_encodings.append(face_encoding)
+                    
                     self.known_face_names.append(person_folder)
                     # print(f"image encoded {image}")
                 except IndexError:
@@ -71,6 +81,7 @@ class FaceRecognition:
             sys.exit("Video source not found...")
 
         last_out = datetime.now()
+        s_last_time=time.time()
         while True:
             ret, frame = video_capture.read()
 
@@ -110,8 +121,26 @@ class FaceRecognition:
                     self.face_names.append(f"{name} ({confidence})")
                     # print(name, confidence)
                     if datetime.now().timestamp() - last_out.timestamp() >= 0.5:
-                        print(name, confidence)
+                        print(name, confidence,best_match_index)
+                        global sandeeparray
+                        sandeeparray.add(name)
                         last_out = datetime.now()
+                    if time.time() - s_last_time >= 6:
+                       
+                        print(sandeeparray)
+                        
+                        
+                        try:
+                            json_str = json.dumps(sandeeparray, cls=SetEncoder)
+                            url = 'http://localhost:3000/'
+                            myobj = {'somekey': json_str,"time":time.ctime(time.time())}
+                            
+                            x = requests.post(url, json = myobj)
+                            
+                            print(x.text)
+                        except Exception as e: print(e)
+                        sandeeparray=set()
+                        s_last_time=time.time()
 
             self.process_current_frame = not self.process_current_frame
 
