@@ -8,4 +8,7 @@
 
 # pip install face_recognition
 
-#
+## for running backend
+# cd backend
+# npm i
+# nmp start
